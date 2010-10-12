@@ -102,7 +102,7 @@ uniqueAfterSort xs = foldr addToList [] xs where
 
 main :: IO ()
 main = do
-    nums <- return ([8, 8, 3, 3] :: [Rational])
+    nums <- return ([1, 3, 9, 4] :: [Rational])
     tokensList <- return $ filter (\tokens -> Just 24 == calc tokens) $ stackGen nums
     expressions <- return $ uniqueAfterSort . sort $ map prettyPrint tokensList
     mapM_ putStrLn expressions
