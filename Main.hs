@@ -7,6 +7,12 @@ data Operator = Add | Minus | Multiply | Divide
 data Token a = Op Operator | N a
     deriving (Show, Eq, Ord)
 
+tokens24 :: (Fractional a) => [a] -> [[Token a]]
+tokens24 nums = filter (\tokens -> Just 24 == calc tokens) $ stackGen nums
+
+expressions24 :: (RealFrac a) => [a] -> [String]
+expressions24 nums = uniqueAfterSort . sort $ map prettyPrint $ tokens24 nums
+
 calc :: (Fractional a) => [Token a] -> Maybe a
 calc xs = stackCalc xs []
 
@@ -103,8 +109,8 @@ uniqueAfterSort xs = foldr addToList [] xs where
 main :: IO ()
 main = do
     nums <- return ([1, 3, 9, 4] :: [Rational])
-    tokensList <- return $ filter (\tokens -> Just 24 == calc tokens) $ stackGen nums
-    expressions <- return $ uniqueAfterSort . sort $ map prettyPrint tokensList
+    tokensList <- return $ tokens24 nums
+    expressions <- return $ expressions24 nums
     mapM_ putStrLn expressions
     print $ (length tokensList, length expressions)
 
