@@ -13,6 +13,14 @@ tokens24 nums = filter (\tokens -> Just 24 == calc tokens) $ stackGen nums
 expressions24 :: (RealFrac a) => [a] -> [String]
 expressions24 nums = uniqueAfterSort . sort $ map prettyPrint $ tokens24 nums
 
+permutationsGen :: [a] -> [[a]]
+permutationsGen nums = map (map (nums !!)) $ permutations $ length nums where
+    permutations :: Int -> [[Int]]
+    permutations n | n == 0 = [[]]
+                   | otherwise = concat $ map (insertN n) $ permutations (n-1)
+    insertN :: Int -> [Int] -> [[Int]]
+    insertN n ns = map (\i -> take i ns ++ [n-1] ++ drop i ns) [0..(n-1)]
+
 calc :: (Fractional a) => [Token a] -> Maybe a
 calc xs = stackCalc xs []
 
@@ -25,14 +33,6 @@ stackCalc (Op Multiply:xs) (a:b:ns) = stackCalc xs $ (a*b):ns
 stackCalc (Op Divide:xs) (a:b:ns) | b == 0 = Nothing
                                   | otherwise = stackCalc xs $ (a/b):ns
 stackCalc _ _ = undefined
-
-permutationsGen :: [a] -> [[a]]
-permutationsGen nums = map (map (nums !!)) $ permutations $ length nums where
-    permutations :: Int -> [[Int]]
-    permutations n | n == 0 = [[]]
-                   | otherwise = concat $ map (insertN n) $ permutations (n-1)
-    insertN :: Int -> [Int] -> [[Int]]
-    insertN n ns = map (\i -> take i ns ++ [n-1] ++ drop i ns) [0..(n-1)]
 
 stackGen :: [a] -> [[Token a]]
 stackGen nums = map reverse $ concat $ map (\ns -> stackGenReverse ns 0 []) $ permutationsGen nums
