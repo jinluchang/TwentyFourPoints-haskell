@@ -13,6 +13,11 @@ tokens24 nums = filter (\tokens -> Just 24 == calc tokens) $ stackGen nums
 expressions24 :: (RealFrac a) => [a] -> [String]
 expressions24 nums = uniqueAfterSort . sort $ map prettyPrint $ tokens24 nums
 
+oneExpression24 :: (RealFrac a) => [a] -> Maybe String
+oneExpression24 nums = case expressions24 nums of
+    x:_ -> Just x
+    [] -> Nothing
+
 permutationsGen :: [a] -> [[a]]
 permutationsGen nums = map (map (nums !!)) $ permutations $ length nums where
     permutations :: Int -> [[Int]]
@@ -54,6 +59,9 @@ insertOperator nums n xs | n < 2 = []
 insertNumber :: [a] -> Int -> [Token a] -> [[Token a]]
 insertNumber (num:nums) n xs = stackGenReverse nums (n+1) (N num:xs)
 insertNumber _ _ _ = undefined
+
+prettyPrintNums :: (RealFrac a) => [a] -> String
+prettyPrintNums nums = drop 1 $ concat $ map (\x -> "," ++ show (round x :: Int)) nums
 
 prettyPrint :: (RealFrac a) => [Token a] -> String
 prettyPrint tokens = prettyPrintStack tokens []
@@ -106,12 +114,21 @@ uniqueAfterSort xs = foldr addToList [] xs where
     addToList x ys@(y:_) | x == y = ys
                          | otherwise = x:ys
 
+print24 :: (RealFrac a) => [a] -> String
+print24 nums = prettyPrintNums nums ++ ": " ++
+    case oneExpression24 nums of
+        Nothing -> "Nothing"
+        Just str -> str
+
+numsGen :: (RealFrac a, Enum a) => Int -> a -> a -> [[a]]
+numsGen 1 minNum maxNum = map (\x -> [x]) [minNum..maxNum]
+numsGen n minNum maxNum | n > 1 = do
+    item <- numsGen (n-1) minNum maxNum
+    map (\x -> x:item) [minNum..(head item)]
+numsGen _ _ _ = undefined
+
 main :: IO ()
 main = do
-    nums <- return ([1, 3, 9, 4] :: [Rational])
-    tokensList <- return $ tokens24 nums
-    expressions <- return $ expressions24 nums
-    mapM_ putStrLn expressions
-    print $ (length tokensList, length expressions)
+    mapM_ putStrLn $ map print24 $ (numsGen 4 1 9 :: [[Rational]])
 
 
