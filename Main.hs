@@ -40,7 +40,8 @@ stackCalc (Op Divide:xs) (a:b:ns) | b == 0 = Nothing
 stackCalc _ _ = undefined
 
 stackGen :: [a] -> [[Token a]]
-stackGen nums = map reverse $ concat $ map (\ns -> stackGenReverse ns 0 []) $ permutationsGen nums
+stackGen nums = map reverse $ concat $
+    map (\ns -> stackGenReverse ns 0 []) $ permutationsGen nums
 
 stackGenReverse :: [a] -> Int -> [Token a] -> [[Token a]]
 stackGenReverse [] 1 xs = [xs]
@@ -120,6 +121,12 @@ print24 nums = prettyPrintNums nums ++ ": " ++
         Nothing -> "Nothing"
         Just str -> str
 
+prints24 :: (RealFrac a) => [a] -> String
+prints24 nums = prettyPrintNums nums ++ ": [" ++
+    (show $ length expr) ++ "]" ++
+    (concat $ map (\s -> "\n    " ++ s) expr) where
+    expr = expressions24 nums
+
 numsGen :: (RealFrac a, Enum a) => Int -> a -> a -> [[a]]
 numsGen 1 minNum maxNum = map (\x -> [x]) [minNum..maxNum]
 numsGen n minNum maxNum | n > 1 = do
@@ -129,6 +136,6 @@ numsGen _ _ _ = undefined
 
 main :: IO ()
 main = do
-    mapM_ putStrLn $ map print24 $ (numsGen 4 1 9 :: [[Rational]])
-
+    let result = map prints24 $ (numsGen 4 1 9 :: [[Rational]])
+    mapM_ putStrLn result
 
