@@ -98,12 +98,9 @@ pickOneFromList xs = pickGen id xs where
     pickGen f (y:ys) = ( y , f ys ) : pickGen ( f . (y:) ) ys
     pickGen _ _ = error "pickGen"
 
-
-data Operator = Add' | Minus' | Multiply' | Divide'
-    deriving (Show, Eq, Ord)
-data Token a = Op Operator | N a
-    deriving (Show, Eq, Ord)
-
+--
+-- Output Results
+--
 expr24 :: (RealFrac a) => [a] -> [Expr a]
 expr24 nums = filter (\expr -> Just 24 == eval expr) $ buildExpr nums
 
