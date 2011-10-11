@@ -60,7 +60,7 @@ simpl (Minus a (Number 0)) = simpl $ a + 0
 simpl (Multiply a (Multiply b c)) = simpl $ a * b * c
 simpl (Divide a (Divide b c)) = simpl $ a * c / b
 simpl (Divide a (Multiply b c)) = simpl $ a / b / c
-simpl (Divide a (Number 1)) = simpl a * 1
+simpl (Divide a (Number 1)) = simpl $ a * 1
 simpl (Add a b) = simpl a + simpl b
 simpl (Minus a b) = simpl a - simpl b
 simpl (Multiply a b) = simpl a * simpl b
@@ -166,5 +166,5 @@ numsGen _ _ _ = undefined
 
 main :: IO ()
 main = do
-    let result = map prints24 $ (numsGen 4 1 9 :: [[Rational]])
+    let result = map prints24 $ (numsGen 4 0 9 :: [[Rational]])
     mapM_ putStrLn result

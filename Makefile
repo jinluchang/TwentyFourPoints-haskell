@@ -8,7 +8,8 @@ clean = $(name) *.hi *.o
 all : $(name)
 
 run : $(name)
-	./$(name)
+	time ./$(name) > result.dat
+	wc -l result.dat
 
 $(name) : $(source)
 	$(hc) --make -o $@ $(main)
