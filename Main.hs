@@ -44,6 +44,20 @@ instance (Show a, RealFrac a) => Show (Expr a) where
     showsPrec _ (Recip a) = ( "recip" ++ ) . showParen True (showsPrec 0 a)
 
 --
+-- Simpliify Expressions
+--
+simplify :: (RealFrac a) => Expr a -> Expr a
+simplify (Minus a (Minus b c)) = simplify $ a + c - b
+simplify (Minus a (Add b c)) = simplify $ a - b - c
+simplify (Divide a (Divide b c)) = simplify $ a * c / b
+simplify (Divide a (Multiply b c)) = simplify $ a / b / c
+simplify (Add a b) = simplify a + simplify b
+simplify (Minus a b) = simplify a - simplify b
+simplify (Multiply a b) = simplify a * simplify b
+simplify (Divide a b) = simplify a / simplify b
+simplify a = a
+
+--
 -- Evaluate Expressions
 --
 eval :: (RealFrac a) => Expr a -> Maybe a
@@ -102,7 +116,7 @@ pickOneFromList xs = pickGen id xs where
 -- Output Results
 --
 expr24 :: (RealFrac a) => [a] -> [Expr a]
-expr24 nums = filter (\expr -> Just 24 == eval expr) $ buildExpr nums
+expr24 nums = map simplify $ filter (\expr -> Just 24 == eval expr) $ buildExpr nums
 
 expressions24 :: (RealFrac a) => [a] -> [String]
 expressions24 nums = uniqueAfterSort . sort $ map show $ expr24 nums
