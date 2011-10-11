@@ -14,7 +14,7 @@ data Expr a = Number a
             | Abs (Expr a)
             | Signum (Expr a)
             | Recip (Expr a)
-    deriving (Eq, Ord)
+    deriving (Eq)
 
 instance (RealFrac a) => Num (Expr a) where
     a + b = Add a b
@@ -23,6 +23,19 @@ instance (RealFrac a) => Num (Expr a) where
     abs a = Abs a
     signum a = Signum a
     fromInteger x = Number $ fromInteger x
+
+instance (RealFrac a) => Ord (Expr a) where
+    Number x <= Number y = x <= y
+    Number _ <= _ = True
+    Add a b <= Add c d = (a, b) <= (c, d)
+    Add _ _ <= _ = True
+    Minus a b <= Minus c d = (a, b) <= (c, d)
+    Minus _ _ <= _ = True
+    Multiply a b <= Multiply c d = (a, b) <= (c, d)
+    Multiply _ _ <= _ = True
+    Divide a b <= Divide c d = (a, b) <= (c, d)
+    Divide _ _ <= _ = True
+    _ <= _ = error "Ord"
 
 instance (RealFrac a) => Fractional (Expr a) where
     a / b = Divide a b
