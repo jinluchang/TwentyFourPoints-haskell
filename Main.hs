@@ -47,15 +47,25 @@ instance (Show a, RealFrac a) => Show (Expr a) where
 -- Simpliify Expressions
 --
 simplify :: (RealFrac a) => Expr a -> Expr a
-simplify (Minus a (Minus b c)) = simplify $ a + c - b
-simplify (Minus a (Add b c)) = simplify $ a - b - c
-simplify (Divide a (Divide b c)) = simplify $ a * c / b
-simplify (Divide a (Multiply b c)) = simplify $ a / b / c
-simplify (Add a b) = simplify a + simplify b
-simplify (Minus a b) = simplify a - simplify b
-simplify (Multiply a b) = simplify a * simplify b
-simplify (Divide a b) = simplify a / simplify b
-simplify a = a
+simplify a = firstEqual $ tail $ iterate simpl a where
+    firstEqual (x:y:_) | x == y = x
+    firstEqual (_:xs) = firstEqual xs
+    firstEqual _ = error "firstEqual"
+
+simpl :: (RealFrac a) => Expr a -> Expr a
+simpl (Add a (Add b c)) = simpl $ a + b + c
+simpl (Minus a (Minus b c)) = simpl $ a + c - b
+simpl (Minus a (Add b c)) = simpl $ a - b - c
+simpl (Minus a (Number 0)) = simpl $ a + 0
+simpl (Multiply a (Multiply b c)) = simpl $ a * b * c
+simpl (Divide a (Divide b c)) = simpl $ a * c / b
+simpl (Divide a (Multiply b c)) = simpl $ a / b / c
+simpl (Divide a (Number 1)) = simpl a * 1
+simpl (Add a b) = simpl a + simpl b
+simpl (Minus a b) = simpl a - simpl b
+simpl (Multiply a b) = simpl a * simpl b
+simpl (Divide a b) = simpl a / simpl b
+simpl a = a
 
 --
 -- Evaluate Expressions
