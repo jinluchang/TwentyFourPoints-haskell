@@ -14,7 +14,7 @@ data Expr a = Number a
             | Abs (Expr a)
             | Signum (Expr a)
             | Recip (Expr a)
-    deriving (Eq)
+    deriving (Eq, Ord)
 
 instance (RealFrac a) => Num (Expr a) where
     a + b = Add a b
@@ -23,19 +23,6 @@ instance (RealFrac a) => Num (Expr a) where
     abs a = Abs a
     signum a = Signum a
     fromInteger x = Number $ fromInteger x
-
-instance (RealFrac a) => Ord (Expr a) where
-    Number x <= Number y = x <= y
-    Number _ <= _ = True
-    Add a b <= Add c d = (a, b) <= (c, d)
-    Add _ _ <= _ = True
-    Minus a b <= Minus c d = (a, b) <= (c, d)
-    Minus _ _ <= _ = True
-    Multiply a b <= Multiply c d = (a, b) <= (c, d)
-    Multiply _ _ <= _ = True
-    Divide a b <= Divide c d = (a, b) <= (c, d)
-    Divide _ _ <= _ = True
-    _ <= _ = error "Ord"
 
 instance (RealFrac a) => Fractional (Expr a) where
     a / b = Divide a b
@@ -60,38 +47,99 @@ instance (Show a, RealFrac a) => Show (Expr a) where
 -- Simpliify Expressions
 --
 simplify :: (RealFrac a) => Expr a -> Expr a
-simplify a = firstEqual $ tail $ iterate simpl a where
+simplify a = simpl a where
     firstEqual (x:y:_) | x == y = x
     firstEqual (_:xs) = firstEqual xs
     firstEqual _ = error "firstEqual"
 
 simpl :: (RealFrac a) => Expr a -> Expr a
-simpl a@(Add (Number x) (Number y)) | x > y = Number y + Number x
-                                    | otherwise = a
 simpl (Add a (Add b c)) = simpl $ a + b + c
 simpl (Add a (Minus b c)) = simpl $ a + b - c
 simpl (Minus a (Minus b c)) = simpl $ a + c - b
 simpl (Minus a (Add b c)) = simpl $ a - b - c
-simpl (Minus a (Number 0)) = 0 + simpl a
-simpl a@(Multiply (Number x) (Number y)) | x > y = Number y * Number x
-                                         | otherwise = a
-simpl (Multiply (Add a b) (Number x)) = simpl $ Number x * (a + b)
-simpl (Multiply (Minus a b) (Number x)) = simpl $ Number x * (a - b)
-simpl (Multiply (Add a b) (Multiply c d)) = simpl $ (c * d) * (a + b)
-simpl (Multiply (Minus a b) (Multiply c d)) = simpl $ (c * d) * (a - b)
-simpl (Multiply (Add a b) (Divide c d)) = simpl $ (c / d) * (a + b)
-simpl (Multiply (Minus a b) (Divide c d)) = simpl $ (c / d) * (a - b)
+simpl (Minus a (Number 0)) = simpl a + 0
 simpl (Multiply a (Multiply b c)) = simpl $ a * b * c
 simpl (Multiply a (Divide b c)) = simpl $ a * b / c
 simpl (Divide a (Divide b c)) = simpl $ a * c / b
 simpl (Divide a (Multiply b c)) = simpl $ a / b / c
-simpl (Divide a (Number 1)) = 1 * simpl a
+simpl (Divide a (Number 1)) = simpl a * 1
 simpl (Divide (Number 0) a) = 0 * simpl a
 simpl (Add a b) = simpl a + simpl b
 simpl (Minus a b) = simpl a - simpl b
 simpl (Multiply a b) = simpl a * simpl b
 simpl (Divide a b) = simpl a / simpl b
 simpl a = a
+
+--
+-- List Expressions
+--
+data ExprList a = Element a
+                | AddList [(ExprList a)] [(ExprList a)]
+                | MultiplyList [(ExprList a)] [(ExprList a)]
+    deriving (Show, Eq)
+
+instance (RealFrac a) => Ord (ExprList a) where
+    Element x <= Element y = x >= y
+    Element _ <= _ = False
+    _ <= Element _ = True
+    MultiplyList xs xs' <= MultiplyList ys ys' = (xs, xs') <= (ys, ys')
+    MultiplyList _ _ <= _ = False
+    _ <= MultiplyList _ _ = True
+    AddList xs xs' <= AddList ys ys' = (xs, xs') <= (ys, ys')
+
+instance (RealFrac a) => Num (ExprList a) where
+    AddList xs xs' + AddList ys ys' = AddList (xs ++ ys) (xs' ++ ys')
+    AddList xs xs' + a = AddList (a:xs) xs'
+    a + AddList xs xs' = AddList (a:xs) xs'
+    a + b = AddList [a, b] []
+    AddList xs xs' - AddList ys ys' = AddList (xs ++ ys') (xs' ++ ys)
+    AddList xs xs' - a = AddList xs (a:xs')
+    a - AddList xs xs' = AddList (a:xs') xs
+    a - b = AddList [a] [b]
+    MultiplyList xs xs' * MultiplyList ys ys' = MultiplyList (xs ++ ys) (xs' ++ ys')
+    MultiplyList xs xs' * a = MultiplyList (a:xs) xs'
+    a * MultiplyList xs xs' = MultiplyList (a:xs) xs'
+    a * b = MultiplyList [a, b] []
+    abs = error "abs"
+    signum = error "signum"
+    fromInteger = error "fromInteger"
+
+instance (RealFrac a) => Fractional (ExprList a) where
+    MultiplyList xs xs' / MultiplyList ys ys' = MultiplyList (xs ++ ys') (xs' ++ ys)
+    MultiplyList xs xs' / a = MultiplyList xs (a:xs')
+    a / MultiplyList xs xs' = MultiplyList (a:xs') xs
+    a / b = MultiplyList [a] [b]
+    fromRational = error "fromRational"
+
+exprListFromExpr :: (RealFrac a) => Expr a -> ExprList a
+exprListFromExpr (Number x) = Element x
+exprListFromExpr (Add a b) = exprListFromExpr a + exprListFromExpr b
+exprListFromExpr (Minus a b) = exprListFromExpr a - exprListFromExpr b
+exprListFromExpr (Multiply a b) = exprListFromExpr a * exprListFromExpr b
+exprListFromExpr (Divide a b) = exprListFromExpr a / exprListFromExpr b
+exprListFromExpr _ = error  "exprListFromExpr"
+
+sortExprList :: (RealFrac a) => ExprList a -> ExprList a
+sortExprList (Element x) = Element x
+sortExprList (AddList xs xs') = AddList (sort . map sortExprList $ xs)
+                                        (sort . map sortExprList $ xs')
+sortExprList (MultiplyList xs xs') = MultiplyList (sort . map sortExprList $ xs)
+                                                  (sort . map sortExprList $ xs')
+
+exprFromExprList :: (RealFrac a) => ExprList a -> Expr a
+exprFromExprList (Element x) = Number x
+exprFromExprList (AddList [] []) = error "exprFromExprList"
+exprFromExprList (AddList xs (x':xs') ) = Minus
+    ( exprFromExprList $ AddList xs xs' ) ( exprFromExprList x' )
+exprFromExprList (AddList [x] [] ) = exprFromExprList x
+exprFromExprList (AddList (x:xs) [] ) = Add
+    ( exprFromExprList $ AddList xs [] ) ( exprFromExprList x )
+exprFromExprList (MultiplyList [] []) = error "exprFromExprList"
+exprFromExprList (MultiplyList xs (x':xs') ) = Divide
+    ( exprFromExprList $ MultiplyList xs xs' ) ( exprFromExprList x' )
+exprFromExprList (MultiplyList [x] [] ) = exprFromExprList x
+exprFromExprList (MultiplyList (x:xs) [] ) = Multiply
+    ( exprFromExprList $ MultiplyList xs [] ) ( exprFromExprList x )
 
 --
 -- Evaluate Expressions
@@ -155,7 +203,7 @@ expr24 :: (RealFrac a) => [a] -> [Expr a]
 expr24 nums = map simplify $ filter (\expr -> Just 24 == eval expr) $ buildExpr nums
 
 expressions24 :: (RealFrac a) => [a] -> [String]
-expressions24 nums = uniqueAfterSort . sort $ map show $ expr24 nums
+expressions24 nums = uniqueAfterSort . sort $ map (show . exprFromExprList . sortExprList . exprListFromExpr) $ expr24 nums
 
 oneExpression24 :: (RealFrac a) => [a] -> Maybe String
 oneExpression24 nums = case expressions24 nums of
