@@ -253,5 +253,5 @@ numsGen _ _ _ = undefined
 
 main :: IO ()
 main = do
-    let result = map prints24 $ (numsGen 4 0 9 :: [[Rational]])
+    let result = map prints24 $ (numsGen 4 0 13 :: [[Rational]])
     mapM_ putStrLn result
