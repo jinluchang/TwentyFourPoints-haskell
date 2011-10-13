@@ -47,15 +47,11 @@ instance (Show a, RealFrac a) => Show (Expr a) where
 -- Simpliify Expressions
 --
 simplify :: (RealFrac a) => Expr a -> Expr a
-simplify a = simpl a where
-    firstEqual (x:y:_) | x == y = x
-    firstEqual (_:xs) = firstEqual xs
-    firstEqual _ = error "firstEqual"
+simplify a = simpl a
 
 simpl :: (RealFrac a) => Expr a -> Expr a
 simpl (Add a (Add b c)) = simpl $ a + b + c
 simpl (Add a (Minus b c)) = simpl $ a + b - c
-simpl (Minus a (Minus b c)) = simpl $ a + c - b
 simpl (Minus a (Add b c)) = simpl $ a - b - c
 simpl (Minus a (Number 0)) = simpl a + 0
 simpl (Multiply a (Multiply b c)) = simpl $ a * b * c
@@ -65,10 +61,27 @@ simpl (Divide a (Multiply b c)) = simpl $ a / b / c
 simpl (Divide a (Number 1)) = simpl a * 1
 simpl (Divide (Number 0) a) = 0 * simpl a
 simpl (Add a b) = simpl a + simpl b
-simpl (Minus a b) = simpl a - simpl b
+simpl (Minus a b) = case tryNegate b of
+    Just b' -> simpl $ a + b'
+    Nothing -> simpl a - simpl b
 simpl (Multiply a b) = simpl a * simpl b
 simpl (Divide a b) = simpl a / simpl b
 simpl a = a
+
+tryNegate :: (RealFrac a) => Expr a -> Maybe (Expr a)
+tryNegate (Minus a b) = return $ Minus b a
+tryNegate (Multiply a b) = case tryNegate a of
+    Just a' -> return $ Multiply a' b
+    Nothing -> do
+        b' <- tryNegate b
+        return $ Multiply a b'
+tryNegate (Divide a b) = case tryNegate a of
+    Just a' -> return $ Divide a' b
+    Nothing -> do
+        b' <- tryNegate b
+        return $ Divide a b'
+tryNegate (Number 0) = return $ Number 0
+tryNegate _ = Nothing
 
 --
 -- List Expressions
